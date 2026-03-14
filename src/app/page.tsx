@@ -5,6 +5,7 @@ import { Coffee, MapPin, Sparkles, Send, CheckCircle2 } from 'lucide-react';
 
 export default function Home() {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [station, setStation] = useState('');
   const [otherStation, setOtherStation] = useState('');
   const [contact, setContact] = useState('');
@@ -14,9 +15,50 @@ export default function Home() {
   const stations = ['상봉역', '망우역', '태릉입구역', '기타'];
   const ages = ['20대 초중반', '20대 후반', '30대 초반', '30대 중후반'];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitted(true);
+    
+    const selectedLocation = station === '기타' ? otherStation : station;
+
+    if (!selectedLocation || !contact || !ageGroup) {
+      alert("모든 항목을 선택 및 입력해주세요.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('https://qdvwwnylfhhevwzdfumm.supabase.co/functions/v1/social-survey', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // 임시 Authorization 헤더 추가 (실제 Supabase anon key로 교체 필요할 수 있음)
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'dummy_token_for_now'}`,
+        },
+        body: JSON.stringify({
+          location: selectedLocation,
+          contact,
+          age_group: ageGroup,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 409) {
+          alert('이미 신청된 연락처입니다.');
+        } else {
+          alert(data.error || '오류가 발생했습니다. 다시 시도해주세요.');
+        }
+        return;
+      }
+
+      setIsSubmitted(true);
+    } catch (error) {
+      alert('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isSubmitted) {
@@ -205,11 +247,18 @@ export default function Home() {
             <div className="mt-4 pt-8 border-t border-gray-100 flex justify-center">
               <button 
                 type="submit" 
-                className="w-full relative group overflow-hidden bg-[#3c47e4] rounded-full text-white font-bold p-4 shadow-[0_15px_30px_-10px_rgba(60,71,228,0.5)] hover:-translate-y-1 hover:shadow-[0_20px_40px_-10px_rgba(60,71,228,0.6)] transform transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-2"
+                disabled={isLoading}
+                className={`w-full relative group overflow-hidden rounded-full text-white font-bold p-4 shadow-[0_15px_30px_-10px_rgba(60,71,228,0.5)] transform transition-all duration-300 flex items-center justify-center gap-2 ${
+                  isLoading 
+                    ? 'bg-[#3c47e4]/60 cursor-not-allowed' 
+                    : 'bg-[#3c47e4] hover:-translate-y-1 hover:shadow-[0_20px_40px_-10px_rgba(60,71,228,0.6)] active:scale-[0.98]'
+                }`}
               >
-                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
-                <span className="text-[15px] tracking-wide relative z-10">동네 카페에서 설레는 인연 시작하기</span>
-                <Send className="w-4 h-4 ml-1 relative z-10 group-hover:translate-x-1 transition-transform duration-300" strokeWidth={2.5} />
+                {!isLoading && <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>}
+                <span className="text-[15px] tracking-wide relative z-10">
+                  {isLoading ? '신청 처리 중...' : '동네 카페에서 설레는 인연 시작하기'}
+                </span>
+                {!isLoading && <Send className="w-4 h-4 ml-1 relative z-10 group-hover:translate-x-1 transition-transform duration-300" strokeWidth={2.5} />}
               </button>
             </div>
             
