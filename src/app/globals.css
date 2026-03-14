@@ -1,0 +1,14 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+@theme {
+  --color-brand: #3c47e4;
+  --color-brand-light: rgba(60, 71, 228, 0.1);
+}
+
+@layer base {
+  body {
+    background-color: #f9fafb; /* Light gray background to show the white card */
+    color: #1f2937; /* gray-800 */
+  }
+}
