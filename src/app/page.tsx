@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Coffee, MapPin, Sparkles, Send, CheckCircle2 } from 'lucide-react';
+import { Coffee, MapPin, Sparkles, Send, CheckCircle2, Heart } from 'lucide-react';
 
 function HomeContent() {
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -11,6 +11,7 @@ function HomeContent() {
   const [otherStation, setOtherStation] = useState('');
   const [contact, setContact] = useState('');
   const [ageGroup, setAgeGroup] = useState('');
+  const [gender, setGender] = useState('');
   const [isFocused, setIsFocused] = useState(false);
 
   const searchParams = useSearchParams();
@@ -18,13 +19,14 @@ function HomeContent() {
 
   const stations = ['상봉역', '망우역', '태릉입구역', '기타'];
   const ages = ['20대 초중반', '20대 후반', '30대 초반', '30대 중후반'];
+  const genders = ['남성', '여성'];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const selectedLocation = station === '기타' ? otherStation : station;
 
-    if (!selectedLocation || !contact || !ageGroup) {
+    if (!selectedLocation || !contact || !ageGroup || !gender) {
       alert("모든 항목을 선택 및 입력해주세요.");
       return;
     }
@@ -43,6 +45,7 @@ function HomeContent() {
           location: selectedLocation,
           contact,
           age_group: ageGroup,
+          gender: gender,
           source: source,
         }),
       });
@@ -241,6 +244,43 @@ function HomeContent() {
                     />
                     <span className="text-[13px] sm:text-[14px] z-10">{a}</span>
                     {ageGroup === a && (
+                      <div className="absolute inset-0 rounded-full bg-[#3c47e4]/5 animate-in zoom-in-50 duration-300" />
+                    )}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Q4. Gender */}
+            <div className="space-y-4">
+              <label className="flex gap-3 text-[15px] font-bold text-gray-800 items-start">
+                <div className="bg-[#3c47e4]/10 p-2.5 rounded-2xl h-fit shadow-sm border border-[#3c47e4]/5 flex-shrink-0">
+                  <Heart className="w-5 h-5 text-[#3c47e4]" strokeWidth={2.5} />
+                </div>
+                <div className="mt-2.5 tracking-tight leading-snug">
+                  <span>Q4. 성별을 알려주세요</span>
+                </div>
+              </label>
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                {genders.map((g) => (
+                  <label 
+                    key={g} 
+                    className={`relative flex items-center justify-center text-center cursor-pointer rounded-full border-2 px-3 py-3.5 transition-all duration-300 font-medium select-none touch-manipulation ${
+                      gender === g 
+                        ? 'border-[#3c47e4] bg-[#3c47e4]/[0.03] text-[#3c47e4] shadow-[0_8px_16px_-6px_rgba(60,71,228,0.2)]' 
+                        : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200 hover:shadow-sm'
+                    }`}
+                  >
+                    <input 
+                      type="radio" 
+                      name="gender" 
+                      value={g} 
+                      checked={gender === g} 
+                      onChange={(e) => setGender(e.target.value)} 
+                      className="hidden"
+                    />
+                    <span className="text-[14px] z-10">{g}</span>
+                    {gender === g && (
                       <div className="absolute inset-0 rounded-full bg-[#3c47e4]/5 animate-in zoom-in-50 duration-300" />
                     )}
                   </label>
