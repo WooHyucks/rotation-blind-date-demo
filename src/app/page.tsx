@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Coffee, MapPin, Sparkles, Send, CheckCircle2 } from 'lucide-react';
 
-export default function Home() {
+function HomeContent() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [station, setStation] = useState('');
@@ -11,6 +12,9 @@ export default function Home() {
   const [contact, setContact] = useState('');
   const [ageGroup, setAgeGroup] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+
+  const searchParams = useSearchParams();
+  const source = searchParams.get('source') || 'flyer';
 
   const stations = ['상봉역', '망우역', '태릉입구역', '기타'];
   const ages = ['20대 초중반', '20대 후반', '30대 초반', '30대 중후반'];
@@ -39,6 +43,7 @@ export default function Home() {
           location: selectedLocation,
           contact,
           age_group: ageGroup,
+          source: source,
         }),
       });
 
@@ -266,5 +271,17 @@ export default function Home() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#fafafc] flex items-center justify-center p-4">
+        <div className="animate-pulse text-[#3c47e4] font-bold">로딩 중...</div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
