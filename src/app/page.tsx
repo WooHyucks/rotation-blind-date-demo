@@ -14,7 +14,7 @@ function HomeContent() {
   const [contactValue, setContactValue] = useState('');
   const [ageGroup, setAgeGroup] = useState('');
   const [gender, setGender] = useState('');
-
+  const [variant, setVariant] = useState<'A' | 'B' | null>(null);
 
   const searchParams = useSearchParams();
   const source = searchParams.get('source') || 'flyer';
@@ -24,7 +24,7 @@ function HomeContent() {
 
     let customUserId = localStorage.getItem('amplitude_user_id');
     if (!customUserId) {
-      const hasQueryString = window.location.search.length > 1; // 쿼리스트링 존재 여부
+      const hasQueryString = window.location.search.length > 1; 
       const randomNum = Math.floor(1000 + Math.random() * 9000);
       customUserId = hasQueryString ? `당근유저_${randomNum}` : `일반유저_${randomNum}`;
       localStorage.setItem('amplitude_user_id', customUserId);
@@ -32,6 +32,16 @@ function HomeContent() {
 
     amplitude.setUserId(customUserId);
     amplitude.track('Page_View', { source: source });
+
+    // A/B Test Logic
+    let currentVariant = localStorage.getItem('ab_variant') as 'A' | 'B';
+    if (!currentVariant) {
+      currentVariant = Math.random() < 0.5 ? 'A' : 'B';
+      localStorage.setItem('ab_variant', currentVariant);
+    }
+    setVariant(currentVariant);
+    amplitude.track('view_variant', { variant: currentVariant });
+
   }, [source]);
 
   const stations = ['상봉역', '망우역', '구리역', '기타'];
@@ -91,7 +101,8 @@ function HomeContent() {
       contactMethod: contactMethod,
       ageGroup: ageGroup,
       gender: gender,
-      source: source
+      source: source,
+      variant: variant
     });
 
     setIsLoading(true);
@@ -130,7 +141,8 @@ function HomeContent() {
         contactMethod: contactMethod,
         ageGroup: ageGroup,
         gender: gender,
-        source: source
+        source: source,
+        variant: variant
       });
       setIsSubmitted(true);
     } catch (error) {
@@ -211,49 +223,138 @@ function HomeContent() {
             <div className="bg-gradient-to-br from-rose-50/50 to-white rounded-3xl p-5 border border-rose-100/50 shadow-[0_12px_24px_-10px_rgba(225,29,72,0.04)] relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-rose-300/10 rounded-full blur-2xl -mr-10 -mt-10" />
               
-              <div className="flex items-center justify-center gap-1.5 mb-4">
+              <div className="flex items-center justify-center gap-1.5 mb-5">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
                 </span>
-                <span className="text-[12px] font-extrabold text-rose-500 tracking-wider">실시간 신청 현황</span>
+                <span className="text-[12px] font-extrabold text-rose-500 tracking-wider">
+                  {variant === 'A' ? "현재 상봉/망우 지역 실시간 매칭 현황입니다." : "실시간 신청 현황"}
+                </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 relative z-10">
-                {/* 여성 신청 현황 */}
-                <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 border border-rose-100/60 flex flex-col items-center shadow-sm">
-                  <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center mb-2">
-                    <Heart className="w-5 h-5 text-rose-500" strokeWidth={2.5} />
-                  </div>
-                  <span className="text-[11px] font-bold text-gray-400 mb-1">여성 신청 현황</span>
-                  <div className="text-[15px] font-extrabold text-gray-800 flex flex-col items-center">
-                    <div>
-                      <span className="text-rose-500 text-lg">1</span>명
+              {variant === 'A' ? (
+                /* =================== VERSION A: Range (초간소화 고급 1단 피드) =================== */
+                <div className="space-y-3 relative z-10 w-full text-left">
+                  {/* 여성 매칭 현황 */}
+                  <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border border-rose-100/60 shadow-[0_4px_12px_rgba(225,29,72,0.01)] flex flex-col gap-2 relative">
+                    <div className="absolute top-3 right-3 flex items-center gap-1 opacity-75">
+                      <div className="w-1 h-1 rounded-full bg-rose-400 animate-pulse" />
+                      <span className="text-[9px] text-gray-500 font-bold tracking-tight">2명 성비 조절 중</span>
                     </div>
-                    <span className="text-[10px] text-gray-500 font-medium tracking-tight mt-0.5">(20대 초반)</span>
+                    
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-rose-50 flex items-center justify-center">
+                        <Heart className="w-4 h-4 text-rose-500" strokeWidth={2.5} />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-gray-400 tracking-tight">여성 매칭 유저</span>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-rose-500 flex-shrink-0" strokeWidth={3} />
+                          <span className="text-[12px]  font-semibold text-gray-800 tracking-tight">20대 초중반</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 남성 매칭 현황 */}
+                  <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border border-blue-100/60 shadow-[0_4px_12px_rgba(59,130,246,0.01)] flex flex-col gap-3 relative">
+                    <div className="absolute top-3 right-3 flex items-center gap-1 opacity-75">
+                      <div className="w-1 h-1 rounded-full bg-blue-400 animate-pulse" />
+                      <span className="text-[9px] text-gray-500 font-bold tracking-tight">3명 프로필 검토 중</span>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
+                        <Users className="w-4 h-4 text-blue-500" strokeWidth={2.5} />
+                      </div>
+                      <div className="flex flex-col gap-1.5 flex-grow">
+                        <span className="text-[10px] font-bold text-gray-400 tracking-tight">남성 매칭 유저</span>
+                        
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" strokeWidth={3} />
+                            <span className="text-[12px] font-semibold text-gray-800 tracking-tight">180cm 중반 <span className="text-gray-300 mx-1">/</span> 20대 중후반</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" strokeWidth={3} />
+                            <span className="text-[12px] font-semibold text-gray-800 tracking-tight">170cm 후반 <span className="text-gray-300 mx-1">/</span> 20대 중후반</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-
-                {/* 남성 신청 현황 */}
-                <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 border border-blue-100/60 flex flex-col items-center shadow-sm">
-                  <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mb-2">
-                    <Users className="w-5 h-5 text-blue-500" strokeWidth={2.5} />
-                  </div>
-                  <span className="text-[11px] font-bold text-gray-400 mb-1">남성 신청 현황</span>
-                  <div className="text-[15px] font-extrabold text-gray-800 flex flex-col items-center">
-                    <div>
-                      <span className="text-blue-500 text-lg">2</span>명
+              ) : (
+                /* =================== VERSION B: Counter (정량 카운트 단일화) =================== */
+                <div className="grid grid-cols-2 gap-3 relative z-10">
+                  {/* 여성 신청 현황 */}
+                  <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border border-rose-100/60 flex flex-col items-center shadow-sm">
+                    <div className="w-9 h-9 bg-rose-50 rounded-xl flex items-center justify-center mb-1.5">
+                      <Heart className="w-4 h-4 text-rose-500" strokeWidth={2.5} />
                     </div>
-                    <span className="text-[10px] text-gray-500 font-medium tracking-tight mt-0.5">(20대 중후반, 20대 후반)</span>
+                    <span className="text-[10px] font-bold text-gray-400 mb-2">여성 신청 현황</span>
+                    
+                    <div className="flex w-full divide-x divide-rose-100/30 mt-1">
+                      <div className="flex-1 flex flex-col items-center">
+                        <span className="text-[9px] text-gray-400 font-bold mb-0.5">확정</span>
+                        <p className="text-[16px] font-black text-rose-500">1<span className="text-[11px] font-bold text-gray-600 ml-0.5">명</span></p>
+                        <span className="text-[8px] text-gray-500 font-bold mt-1 bg-rose-50/70 px-1 py-0.5 rounded leading-none scale-[0.9] transform origin-top">(20대 초중반)</span>
+                      </div>
+                      <div className="flex-1 flex flex-col items-center opacity-60">
+                        <div className="flex items-center gap-0.5 mb-0.5">
+                          <span className="text-[9px] text-gray-400 font-bold">대기</span>
+                          <div className="flex gap-[1.5px] items-center mt-0.5">
+                            <div className="w-[2px] h-[2px] rounded-full bg-gray-400 animate-bounce duration-300" />
+                            <div className="w-[2px] h-[2px] rounded-full bg-gray-400 animate-bounce [animation-delay:0.1s]" />
+                            <div className="w-[2px] h-[2px] rounded-full bg-gray-400 animate-bounce [animation-delay:0.2s]" />
+                          </div>
+                        </div>
+                        <p className="text-[15px] font-black text-gray-700">2<span className="text-[10px] font-medium text-gray-500 ml-0.5">명</span></p>
+                        <span className="text-[8px] text-rose-400 font-bold tracking-tight mt-0.5">검토 중</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 남성 신청 현황 */}
+                  <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border border-blue-100/60 flex flex-col items-center shadow-sm">
+                    <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center mb-1.5">
+                      <Users className="w-4 h-4 text-blue-500" strokeWidth={2.5} />
+                    </div>
+                    <span className="text-[10px] font-bold text-gray-400 mb-2">남성 신청 현황</span>
+                    
+                    <div className="flex w-full divide-x divide-blue-100/30 mt-1">
+                      <div className="flex-1 flex flex-col items-center">
+                        <span className="text-[9px] text-gray-400 font-bold mb-0.5">확정</span>
+                        <p className="text-[16px] font-black text-blue-500">2<span className="text-[11px] font-bold text-gray-600 ml-0.5">명</span></p>
+                        <span className="text-[7.5px] text-gray-500 font-bold mt-1 bg-blue-50/70 px-1 py-0.5 rounded text-center leading-[1.2] tracking-tighter w-[95%] overflow-hidden text-ellipsis">(20대 후반, 20대 중후반)</span>
+                      </div>
+                      <div className="flex-1 flex flex-col items-center opacity-60">
+                        <div className="flex items-center gap-0.5 mb-0.5">
+                          <span className="text-[9px] text-gray-400 font-bold">대기</span>
+                          <div className="flex gap-[1.5px] items-center mt-0.5">
+                            <div className="w-[2px] h-[2px] rounded-full bg-gray-400 animate-bounce duration-300" />
+                            <div className="w-[2px] h-[2px] rounded-full bg-gray-400 animate-bounce [animation-delay:0.1s]" />
+                            <div className="w-[2px] h-[2px] rounded-full bg-gray-400 animate-bounce [animation-delay:0.2s]" />
+                          </div>
+                        </div>
+                        <p className="text-[15px] font-black text-gray-700">3<span className="text-[10px] font-medium text-gray-500 ml-0.5">명</span></p>
+                        <span className="text-[8px] text-blue-400 font-bold tracking-tight mt-0.5">매칭 대기</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
-              <div className="mt-4 pt-3.5 border-t border-rose-50 flex items-center justify-center gap-1.5 ">
-                <ShieldCheck className="w-3.5 h-3.5 text-rose-400" />
-                <p className="text-[11px] text-gray-500 font-semibold text-center mt-0.5">
-                  성비와 연령대를 고려해 정중하게 매칭 중입니다
-                </p>
+              <div className="mt-4 pt-3.5 border-t border-rose-100/50 flex items-start justify-center gap-1.5 px-1">
+                <ShieldCheck className="w-3.5 h-3.5 text-rose-400 mt-0.5 flex-shrink-0" />
+                <div className="text-[10px] text-gray-500 font-semibold text-center leading-[1.5] tracking-tight">
+                  {variant === 'A' ? (
+                    "성비와 매너를 고려해 정중하게 선별 매칭 중입니다."
+                  ) : (
+                    <>현재 성비에 맞춰 순차적으로 초대장을 발송하고 있습니다. 지금 신청하시면 <strong className="text-rose-500 font-bold">우선 순위로 검토</strong>됩니다!</>
+                  )}
+                </div>
               </div>
             </div>
           </div>
