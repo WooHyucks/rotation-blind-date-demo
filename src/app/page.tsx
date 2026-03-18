@@ -2,7 +2,7 @@
 
 import { useState, Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Coffee, MapPin, Sparkles, Send, CheckCircle2, Heart, ShieldCheck } from 'lucide-react';
+import { Coffee, MapPin, Sparkles, Send, CheckCircle2, Heart, ShieldCheck, Users } from 'lucide-react';
 import * as amplitude from '@amplitude/analytics-browser';
 
 function HomeContent() {
@@ -201,6 +201,58 @@ function HomeContent() {
               <div className="mt-4 pt-4 border-t border-[#3c47e4]/10 relative z-10">
                 <p className="text-[13px] font-bold text-[#3c47e4]">
                   딱 10초만 투자해서 내 집 앞에서의 설렘을 예약하세요!
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 💖 실시간 신청 현황 */}
+          <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-700 delay-100">
+            <div className="bg-gradient-to-br from-rose-50/50 to-white rounded-3xl p-5 border border-rose-100/50 shadow-[0_12px_24px_-10px_rgba(225,29,72,0.04)] relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-rose-300/10 rounded-full blur-2xl -mr-10 -mt-10" />
+              
+              <div className="flex items-center justify-center gap-1.5 mb-4">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                </span>
+                <span className="text-[12px] font-extrabold text-rose-500 tracking-wider">실시간 신청 현황</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 relative z-10">
+                {/* 여성 신청 현황 */}
+                <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 border border-rose-100/60 flex flex-col items-center shadow-sm">
+                  <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center mb-2">
+                    <Heart className="w-5 h-5 text-rose-500" strokeWidth={2.5} />
+                  </div>
+                  <span className="text-[11px] font-bold text-gray-400 mb-1">여성 신청 현황</span>
+                  <div className="text-[15px] font-extrabold text-gray-800 flex flex-col items-center">
+                    <div>
+                      <span className="text-rose-500 text-lg">1</span>명
+                    </div>
+                    <span className="text-[10px] text-gray-500 font-medium tracking-tight mt-0.5">(20대 초반)</span>
+                  </div>
+                </div>
+
+                {/* 남성 신청 현황 */}
+                <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 border border-blue-100/60 flex flex-col items-center shadow-sm">
+                  <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mb-2">
+                    <Users className="w-5 h-5 text-blue-500" strokeWidth={2.5} />
+                  </div>
+                  <span className="text-[11px] font-bold text-gray-400 mb-1">남성 신청 현황</span>
+                  <div className="text-[15px] font-extrabold text-gray-800 flex flex-col items-center">
+                    <div>
+                      <span className="text-blue-500 text-lg">2</span>명
+                    </div>
+                    <span className="text-[10px] text-gray-500 font-medium tracking-tight mt-0.5">(20대 중후반, 20대 후반)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-3.5 border-t border-rose-50 flex items-center justify-center gap-1.5 ">
+                <ShieldCheck className="w-3.5 h-3.5 text-rose-400" />
+                <p className="text-[11px] text-gray-500 font-semibold text-center mt-0.5">
+                  성비와 연령대를 고려해 정중하게 매칭 중입니다
                 </p>
               </div>
             </div>
