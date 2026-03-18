@@ -1,35 +1,98 @@
 "use client";
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Coffee, MapPin, Sparkles, Send, CheckCircle2, Heart } from 'lucide-react';
+import { Coffee, MapPin, Sparkles, Send, CheckCircle2, Heart, ShieldCheck } from 'lucide-react';
+import * as amplitude from '@amplitude/analytics-browser';
 
 function HomeContent() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [station, setStation] = useState('');
   const [otherStation, setOtherStation] = useState('');
-  const [contact, setContact] = useState('');
+  const [contactMethod, setContactMethod] = useState('');
+  const [contactValue, setContactValue] = useState('');
   const [ageGroup, setAgeGroup] = useState('');
   const [gender, setGender] = useState('');
-  const [isFocused, setIsFocused] = useState(false);
+
 
   const searchParams = useSearchParams();
   const source = searchParams.get('source') || 'flyer';
 
-  const stations = ['상봉역', '망우역', '태릉입구역', '기타'];
+  useEffect(() => {
+    amplitude.init('c38ab7ef5ec1b252254c304b37591477');
+
+    let customUserId = localStorage.getItem('amplitude_user_id');
+    if (!customUserId) {
+      const hasQueryString = window.location.search.length > 1; // 쿼리스트링 존재 여부
+      const randomNum = Math.floor(1000 + Math.random() * 9000);
+      customUserId = hasQueryString ? `당근유저_${randomNum}` : `일반유저_${randomNum}`;
+      localStorage.setItem('amplitude_user_id', customUserId);
+    }
+
+    amplitude.setUserId(customUserId);
+    amplitude.track('Page_View', { source: source });
+  }, [source]);
+
+  const stations = ['상봉역', '망우역', '구리역', '기타'];
   const ages = ['20대 초중반', '20대 후반', '30대 초반', '30대 중후반'];
   const genders = ['남성', '여성'];
+  const contactMethods = [
+    { id: 'instagram', label: '인스타 ID', placeholder: '예: @instagram_id' },
+    { id: 'kakao', label: '카카오톡 ID', placeholder: '예: kakao_id' },
+    { id: 'phone', label: '전화번호', placeholder: '예: 010-0000-0000' },
+    { id: 'openkakao', label: '오픈카톡 링크', placeholder: '예: https://open.kakao.com/o/...' },
+  ];
+
+
+  const handleSelectStation = (val: string) => {
+    setStation(val);
+    amplitude.track('Select_Station', { value: val });
+  };
+
+  const handleSelectContactMethod = (val: string) => {
+    setContactMethod(val);
+    setContactValue('');
+    amplitude.track('Select_ContactMethod', { value: val });
+  };
+
+  const handleSelectAge = (val: string) => {
+    setAgeGroup(val);
+    amplitude.track('Select_AgeGroup', { value: val });
+  };
+
+  const handleSelectGender = (val: string) => {
+    setGender(val);
+    amplitude.track('Select_Gender', { value: val });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     const selectedLocation = station === '기타' ? otherStation : station;
+    const isValidContact = contactValue.trim();
 
-    if (!selectedLocation || !contact || !ageGroup || !gender) {
-      alert("모든 항목을 선택 및 입력해주세요.");
+    if (!selectedLocation || !isValidContact || !ageGroup || !gender) {
+      alert("모든 항목을 입력 및 선택해주세요.");
+      amplitude.track('Submit_Form_Fail_Validation', {
+        reason: 'fields_missing',
+        station: !!station,
+        contactMethod: !!contactMethod,
+        contactValue: !!contactValue.trim(),
+        ageGroup: !!ageGroup,
+        gender: !!gender
+      });
       return;
     }
+
+    const contactString = `[${contactMethod}] ${contactValue.trim()}`;
+    
+    amplitude.track('Submit_Form_Attempt', {
+      location: selectedLocation,
+      contactMethod: contactMethod,
+      ageGroup: ageGroup,
+      gender: gender,
+      source: source
+    });
 
     setIsLoading(true);
 
@@ -38,12 +101,11 @@ function HomeContent() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // 임시 Authorization 헤더 추가 (실제 Supabase anon key로 교체 필요할 수 있음)
           'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'dummy_token_for_now'}`,
         },
         body: JSON.stringify({
           location: selectedLocation,
-          contact,
+          contact: contactString,
           age_group: ageGroup,
           gender: gender,
           source: source,
@@ -55,12 +117,21 @@ function HomeContent() {
       if (!response.ok) {
         if (response.status === 409) {
           alert('이미 신청된 연락처입니다.');
+          amplitude.track('Submit_Form_Fail', { reason: 'conflict', status: 409 });
         } else {
           alert(data.error || '오류가 발생했습니다. 다시 시도해주세요.');
+          amplitude.track('Submit_Form_Fail', { reason: 'api_error', error: data.error, status: response.status });
         }
         return;
       }
 
+      amplitude.track('Submit_Form_Success', {
+        location: selectedLocation,
+        contactMethod: contactMethod,
+        ageGroup: ageGroup,
+        gender: gender,
+        source: source
+      });
       setIsSubmitted(true);
     } catch (error) {
       alert('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
@@ -71,10 +142,10 @@ function HomeContent() {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-[#fafafc] flex items-center justify-center p-4 font-sans relative overflow-hidden">
+      <div className="min-h-screen bg-white sm:bg-[#fafafc] flex items-center justify-center sm:p-4 font-sans relative overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#3c47e4]/10 rounded-full blur-[80px]" />
         
-        <div className="w-full max-w-[450px] bg-white border border-gray-100/50 rounded-[2.5rem] p-8 md:p-12 shadow-[0_20px_40px_-15px_rgba(60,71,228,0.1)] relative z-10 animate-in zoom-in-95 duration-500">
+        <div className="w-full max-w-[450px] bg-white border-0 sm:border border-gray-100/50 rounded-none sm:rounded-[2.5rem] p-6 sm:p-12 shadow-none sm:shadow-[0_20px_40px_-15px_rgba(60,71,228,0.1)] relative z-10 animate-in zoom-in-95 duration-500 min-h-screen sm:min-h-fit flex flex-col justify-center">
           <div className="flex flex-col items-center justify-center text-center space-y-6 py-10">
             <div className="w-20 h-20 bg-[#3c47e4]/10 rounded-full flex items-center justify-center mb-2 animate-in slide-in-from-bottom-4 duration-700">
               <CheckCircle2 className="w-10 h-10 text-[#3c47e4]" />
@@ -94,14 +165,14 @@ function HomeContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fafafc] flex items-center justify-center p-4 sm:p-6 font-sans relative overflow-hidden selection:bg-[#3c47e4]/20 selection:text-[#3c47e4]">
+    <div className="min-h-screen bg-white sm:bg-[#fafafc] flex items-center justify-center sm:p-4 font-sans relative overflow-hidden selection:bg-[#3c47e4]/20 selection:text-[#3c47e4]">
       {/* Premium Background Glow Effect */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[600px] h-[500px] bg-gradient-to-b from-[#3c47e4]/5 to-transparent blur-3xl rounded-[2.5rem] -z-10 pointer-events-none"></div>
 
-      <div className="w-full max-w-[450px] relative z-10 w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="w-full max-w-[450px] relative z-10 animate-in fade-in sm:slide-in-from-bottom-4 duration-500 min-h-screen sm:min-h-fit flex flex-col">
         
         {/* Main Content Card */}
-        <div className="bg-white/80 backdrop-blur-xl border border-white rounded-[2.5rem] p-6 md:p-10 shadow-[0_20px_60px_-15px_rgba(60,71,228,0.08)] ring-1 ring-black/[0.02]">
+        <div className="bg-white/95 sm:bg-white/80 backdrop-blur-xl border-0 sm:border border-white/40 rounded-none sm:rounded-[2.5rem] p-5 sm:p-10 shadow-none sm:shadow-[0_20px_60px_-15px_rgba(60,71,228,0.08)] ring-0 sm:ring-1 ring-black/[0.02] flex-grow flex flex-col justify-center">
           
           {/* Header Section */}
           <div className="mb-10 text-center flex flex-col items-center">
@@ -160,7 +231,7 @@ function HomeContent() {
                       name="station" 
                       value={s} 
                       checked={station === s} 
-                      onChange={(e) => setStation(e.target.value)} 
+                      onChange={(e) => handleSelectStation(e.target.value)} 
                       className="hidden"
                     />
                     <span className="text-[14px] z-10">{s}</span>
@@ -187,30 +258,63 @@ function HomeContent() {
             {/* Q2. Contact Info */}
             <div className="space-y-4">
               <label className="flex gap-3 text-[15px] font-bold text-gray-800 items-start">
-                <div className="bg-[#3c47e4]/10 p-2.5 rounded-2xl h-fit shadow-sm border border-[#3c47e4]/5">
+                <div className="bg-[#3c47e4]/10 p-2.5 rounded-2xl h-fit shadow-sm border border-[#3c47e4]/5 flex-shrink-0">
                   <Send className="w-5 h-5 text-[#3c47e4]" strokeWidth={2.5} />
                 </div>
-                <span className="mt-2.5 tracking-tight leading-snug">Q2. 본인 확인 및 알림을 위한 인스타 ID (@계정) 또는 연락처</span>
-              </label>
-              <div className="mt-4 relative group">
-                <input 
-                  type="text" 
-                  placeholder="예: @instagram_id 또는 010-0000-0000" 
-                  className="w-full rounded-full border-2 border-gray-100 bg-white px-5 py-3.5 shadow-sm text-base focus:outline-none focus:border-[#3c47e4] transition-all duration-300 font-medium text-gray-800 placeholder-gray-400 z-10 relative"
-                  value={contact}
-                  onChange={(e) => setContact(e.target.value)}
-                  onFocus={() => setIsFocused(true)}
-                  onBlur={() => setIsFocused(false)}
-                  required
-                />
-                
-                <div className={`mt-4 bg-[#fafafc] p-4 rounded-2xl border border-gray-100 transition-all duration-500 ease-out transform ${isFocused ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-90'}`}>
-                  <p className="text-[12px] text-gray-500 leading-relaxed font-medium flex gap-2.5">
-                    <span className="text-[#3c47e4] mt-[1px] opacity-80">※</span> 
-                    <span>기재해주신 정보는 모임 확정 시 안내 문자(또는 DM) 전송과 <strong>본인 확인 용도</strong>로만 사용됩니다. 그 외의 마케팅 연락은 절대 드리지 않으니 안심하세요!</span>
-                  </p>
+                <div className="mt-2.5 tracking-tight leading-snug">
+                  <span>Q2. 어떤 방식으로 연락을 받으시겠어요?</span>
                 </div>
+              </label>
+
+              {/* 안심 문구 디자인 */}
+              <div className="bg-[#3c47e4]/[0.03] p-3.5 rounded-2xl border border-[#3c47e4]/5 flex items-start gap-2.5 transition-all duration-300">
+                <ShieldCheck className="w-4 h-4 text-[#3c47e4] mt-0.5" />
+                <p className="text-[12px] text-gray-600 font-medium leading-[1.6]">
+                  정보는 전송 및 본인 확인용으로만 사용되며 <strong>안전하게 관리</strong>됩니다. 안심하세요!
+                </p>
               </div>
+
+              {/* Contact Method Selection Grid */}
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                {contactMethods.map((m) => (
+                  <label 
+                    key={m.id} 
+                    className={`relative flex items-center justify-center text-center cursor-pointer rounded-full border-2 px-3 py-3.5 transition-all duration-300 font-medium select-none touch-manipulation flex-grow ${
+                      contactMethod === m.id 
+                        ? 'border-[#3c47e4] bg-[#3c47e4]/[0.03] text-[#3c47e4] shadow-[0_8px_16px_-6px_rgba(60,71,228,0.2)]' 
+                        : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200 hover:shadow-sm'
+                    }`}
+                  >
+                    <input 
+                      type="radio" 
+                      name="contactMethod" 
+                      value={m.id} 
+                      checked={contactMethod === m.id} 
+                      onChange={(e) => handleSelectContactMethod(e.target.value)} 
+                      className="hidden"
+                    />
+                    <span className="text-[13px] sm:text-[14px] z-10">{m.label}</span>
+                    {contactMethod === m.id && (
+                      <div className="absolute inset-0 rounded-full bg-[#3c47e4]/5 animate-in zoom-in-50 duration-300" />
+                    )}
+                  </label>
+                ))}
+              </div>
+
+              {/* Conditional Input based on selection */}
+              {contactMethod && (
+                <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <input 
+                    type="text" 
+                    placeholder={contactMethods.find(m => m.id === contactMethod)?.placeholder} 
+                    className="w-full rounded-full border-2 border-gray-100 bg-white px-5 py-3.5 shadow-sm text-base focus:outline-none focus:border-[#3c47e4] transition-all duration-300 font-medium text-gray-800 placeholder-gray-400"
+                    value={contactValue}
+                    onChange={(e) => setContactValue(e.target.value)}
+                    onBlur={() => contactValue.trim() && amplitude.track('Type_ContactValue_Blur', { method: contactMethod, length: contactValue.trim().length })}
+                    required
+                  />
+                </div>
+              )}
             </div>
 
             {/* Q3. Age */}
@@ -239,7 +343,7 @@ function HomeContent() {
                       name="age" 
                       value={a} 
                       checked={ageGroup === a} 
-                      onChange={(e) => setAgeGroup(e.target.value)} 
+                      onChange={(e) => handleSelectAge(e.target.value)} 
                       className="hidden"
                     />
                     <span className="text-[13px] sm:text-[14px] z-10">{a}</span>
@@ -276,7 +380,7 @@ function HomeContent() {
                       name="gender" 
                       value={g} 
                       checked={gender === g} 
-                      onChange={(e) => setGender(e.target.value)} 
+                      onChange={(e) => handleSelectGender(e.target.value)} 
                       className="hidden"
                     />
                     <span className="text-[14px] z-10">{g}</span>
