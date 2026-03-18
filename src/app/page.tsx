@@ -229,7 +229,7 @@ function HomeContent() {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
                 </span>
                 <span className="text-[12px] font-extrabold text-rose-500 tracking-wider">
-                  {variant === 'A' ? "현재 상봉/망우 지역 실시간 매칭 현황입니다." : "실시간 신청 현황"}
+                  {variant === 'A' ? "현재 상봉/망우/구리 지역 실시간 매칭 현황입니다." : "실시간 신청 현황"}
                 </span>
               </div>
 
